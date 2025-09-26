@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>My 2 Cents – Demo</title>
+  <style>
+    body { font-family: system-ui, Arial; max-width: 640px; margin: 20px auto; padding: 0 12px; }
+    .row { margin: 10px 0; }
+    button { padding: 10px 14px; margin: 4px; cursor: pointer; }
+    #qr { margin-top: 12px; }
+    input[type=text] { width: 100%; padding: 8px; }
+    .note { color:#666; font-size: 12px; }
+    .card { border:1px solid #eee; border-radius:12px; padding:16px; }
+  </style>
+</head>
+<body>
+  <h1>My Your 2 Cents – Demo</h1>
+  <div class="card">
+    <div class="row">
+      <label>API URL (your backend):</label>
+      <input id="apiUrl" type="text" placeholder="e.g. https://your-api-host.com" />
+      <div class="note">We’ll set this to your real API later. For local tests use http://localhost:3000</div>
+    </div>
+
+    <div class="row">
+      <label>Creator username:</label>
+      <input id="creator" type="text" value="testcreator" />
+    </div>
+
+    <div class="row">
+      <strong>Pick an amount:</strong><br/>
+      <button data-amt="0.02">2¢</button>
+      <button data-amt="0.05">5¢</button>
+      <button data-amt="0.10">10¢</button>
+      <button data-amt="0.25">25¢</button>
+      <button data-amt="0.50">50¢</button>
+      <button data-amt="1.00">$1</button>
+    </div>
+
+    <div class="row">
+      <button id="go">Get Invoice</button>
+    </div>
+
+    <div class="row" id="out"></div>
+    <div id="qr"></div>
+  </div>
+
+  <script>
+    let amount = "0.25";
+    document.querySelectorAll("button[data-amt]").forEach(b => {
+      b.addEventListener("click", () => {
+        amount = b.getAttribute("data-amt");
+        document.querySelectorAll("button[data-amt]").forEach(x => x.style.background = "");
+        b.style.background = "#eef";
+      });
+    });
+
+    document.getElementById("go").addEventListener("click", async () => {
+      const api = document.getElementById("apiUrl").value.trim();
+      const creator = document.getElementById("creator").value.trim() || "testcreator";
+      if (!api) { alert("Enter your API URL first"); return; }
+
+      const url = `${api.replace(/\/$/, "")}/api/generate-invoice?amount=${encodeURIComponent(amount)}&creator=${encodeURIComponent(creator)}`;
+      document.getElementById("out").innerText = "Requesting invoice…";
+      document.getElementById("qr").innerHTML = "";
+
+      try {
+        const r = await fetch(url);
+        const j = await r.json();
+        if (!j.invoice) throw new Error("No invoice returned");
+        document.getElementById("out").innerText = `Invoice: ${j.invoice}`;
+        const qrsrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(j.invoice)}`;
+        document.getElementById("qr").innerHTML = `<img alt="QR" src="${qrsrc}" width="240" height="240" />`;
+      } catch (e) {
+        document.getElementById("out").innerText = "Error: " + e.message;
+      }
+    });
+  </script>
+</body>
+</html>
